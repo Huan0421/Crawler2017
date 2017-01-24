@@ -11,3 +11,5 @@
 1.优化了Ip_Get_class.py文件，使其可以更高效的爬取IP。
 2.鉴于免费IP链接不稳定，在main.py文件中添加了第三个线程，时刻更新IP池中的IP，同时用requests模块替换了urllib.request；同时将IP池作为全局变量，利用线程3时刻更新。
 3.添加了未使用代理的main_mini.py文件用于测试。
+2017.1.25
+优化了main.py文件

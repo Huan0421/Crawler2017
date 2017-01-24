@@ -46,7 +46,7 @@ class Ip_getting:
             url = IP_url.replace(self.url_num, self.url_num + '_' + str(i))
             try:
                 Code_body = urllib.request.Request(url, headers=self.headers)
-                Code_body = urllib.request.urlopen(Code_body).read().decode('utf-8')
+                Code_body = urllib.request.urlopen(Code_body,timeout=3).read().decode('utf-8')
                 soup = BeautifulSoup(Code_body, 'lxml')
             except Exception as e:
                 if e.code == 404:

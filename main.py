@@ -35,7 +35,7 @@ class Producer(threading.Thread):
         #设置代理
         if IP_pool:
             ip = r.choice(IP_pool)
-            ip = 'http://'+str(ip)
+            ip = 'http://'+ip
             proxies = {'http':ip}
             print('线程1正在使用代理IP %s' % ip)
             web_data = requests.get(url, headers=self.headers, proxies=proxies, timeout=3)
@@ -48,6 +48,7 @@ class Producer(threading.Thread):
             # 将URL写入队列
             self.work_queue.put(i.get('href'))
             url_get_info.append(i.get('href'))
+
         return url_get_info
     #在上面函数的基础上定义一个函数从首页获取链接
     def run(self):
@@ -66,25 +67,32 @@ class Producer(threading.Thread):
 #再定义一个线程，从对列中取出链接并采集信息
 class house_info(threading.Thread):
     #初始化参数
-    def __init__(self,work_queue):
+    def __init__(self,work_queue,name):
         super().__init__()
         self.work_queue = work_queue
+        self.name = name
         self.headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36'}
     #定义一个函数，从指定的页面获取详情信息
     def run(self):
         Info_all = []
-        print('线程2启动')
+        print('线程 %s 启动' % self.name)
         while True:
             url = self.work_queue.get()
             # 设置代理
-            if IP_pool:
-                ip = r.choice(IP_pool)
-                ip = 'http://' + str(ip)
-                proxies = {'http': ip}
-                print('线程2正在使用代理IP %s' % ip)
-                web_data = requests.get(url, headers=self.headers, proxies=proxies, timeout=3)
-            else:
-                web_data = requests.get(url, headers=self.headers, timeout=3)
+            while True:
+                try:
+                    if IP_pool:
+                        ip = r.choice(IP_pool)
+                        ip = 'http://' + ip
+                        proxies = {'http': ip}
+                        print('线程 %s 正在使用代理IP %s' % (ip,self.name))
+                        web_data = requests.get(url, headers=self.headers, proxies=proxies, timeout=3)
+                    else:
+                        web_data = requests.get(url, headers=self.headers, timeout=3)
+                    break
+                except Exception as e:
+                    print(e)
+
             soup = BeautifulSoup(web_data.text, 'lxml')
             Unit_P = soup.select('div.unitPrice > span')
             if Unit_P:
@@ -112,7 +120,7 @@ class house_info(threading.Thread):
                 'style_house':style_house[0].get_text() if style_house else '暂无数据',
                 'location_house':location_house[0].stripped_strings if location_house else '暂无数据',
             }
-            print('线程2运行中，已成功获取数据')
+            print('线程 %s 运行中，已成功获取数据' % self.name)
             Info_all.append(data)
             t.sleep(1)
         return Info_all
@@ -136,9 +144,13 @@ def main():
     thread_first.daemon = True  # 当主线程退出时子线程也退出
     thread_first.start()
 
-    thread_second = house_info(work_queue)
-    thread_second.daemon = True  # 当主线程退出时子线程也退出
-    thread_second.start()
+    thread_a = house_info(work_queue,'a')
+    thread_a.daemon = True  # 当主线程退出时子线程也退出
+    thread_a.start()
+
+    thread_b = house_info(work_queue, 'b')
+    thread_b.daemon = True  # 当主线程退出时子线程也退出
+    thread_b.start()
 
     thread_ip = IP_GET(Web_Info)
     thread_ip.daemon = True
