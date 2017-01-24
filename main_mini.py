@@ -6,17 +6,10 @@ import requests
 import threading
 import queue
 import random as r
-#配置路径
-import os
-import sys
-sys.path.append(os.curdir)
-import Ip_Get_class
+
 
 #要爬取的网站首页URL
 url_index = 'http://hz.lianjia.com/ershoufang/'
-
-#这里定义一个全局变量储存更新后的IP
-IP_pool=[]
 
 #定义一个线程，专门用于生产可用的URL，并写入队列
 class Producer(threading.Thread):
@@ -32,16 +25,10 @@ class Producer(threading.Thread):
     def get_url_from_web(self,url):
         #定义一个列表用于装载
         url_get_info=[]
-        #设置代理
-        if IP_pool:
-            ip = r.choice(IP_pool)
-            ip = 'http://'+str(ip)
-            proxies = {'http':ip}
-            print('线程1正在使用代理IP %s' % ip)
-            web_data = requests.get(url, headers=self.headers, proxies=proxies, timeout=3)
-        else:
-            web_data = requests.get(url,headers = self.headers,timeout=3)
-        soup = BeautifulSoup(web_data.text,'lxml')
+
+        web_data = urllib.request.Request(url,headers = self.headers)
+        web_data = urllib.request.urlopen(web_data)
+        soup = BeautifulSoup(web_data.read().decode('utf-8'),'lxml')
         url_got = soup.select('div.title > a')
 
         for i in url_got:
@@ -51,12 +38,15 @@ class Producer(threading.Thread):
         return url_get_info
     #在上面函数的基础上定义一个函数从首页获取链接
     def run(self):
-        print('线程1启动')
         Url_All = []
         start = t.clock()
+        print('线程1启动')
         for i in range(1,self.page_all+1):
             page_url = self.url_index + 'pg%s/' % str(i)
-            Url_All += self.get_url_from_web(page_url)
+            try:
+                Url_All += self.get_url_from_web(page_url)
+            except Exception:
+                pass
             print('线程1的链接已写入队列')
         end = t.clock()
         print('共获得链接 %s 条' % len(Url_All))
@@ -76,16 +66,9 @@ class house_info(threading.Thread):
         print('线程2启动')
         while True:
             url = self.work_queue.get()
-            # 设置代理
-            if IP_pool:
-                ip = r.choice(IP_pool)
-                ip = 'http://' + str(ip)
-                proxies = {'http': ip}
-                print('线程2正在使用代理IP %s' % ip)
-                web_data = requests.get(url, headers=self.headers, proxies=proxies, timeout=3)
-            else:
-                web_data = requests.get(url, headers=self.headers, timeout=3)
-            soup = BeautifulSoup(web_data.text, 'lxml')
+            web_data = urllib.request.Request(url, headers=self.headers)
+            web_data = urllib.request.urlopen(web_data)
+            soup = BeautifulSoup(web_data.read().decode('utf-8'), 'lxml')
             Unit_P = soup.select('div.unitPrice > span')
             if Unit_P:
                 Unit_P = re.search(r'unitPriceValue">(\d+?)<i>(.*?)</i>',str(Unit_P[0]))
@@ -117,18 +100,6 @@ class house_info(threading.Thread):
             t.sleep(1)
         return Info_all
 
-class IP_GET(threading.Thread):
-    def __init__(self,info):
-        super().__init__()
-        self.info = info
-    def run(self):
-        print('线程3开始启动')
-        global IP_pool
-        while True:
-            print('IP池开始更新')
-            ip_get = Ip_Get_class.Ip_getting(self.info)
-            IP_pool = ip_get.output_ip()
-            print('IP池完成了一次更新')
 
 def main():
     work_queue = queue.Queue()
@@ -139,18 +110,13 @@ def main():
     thread_second = house_info(work_queue)
     thread_second.daemon = True  # 当主线程退出时子线程也退出
     thread_second.start()
-
-    thread_ip = IP_GET(Web_Info)
-    thread_ip.daemon = True
-    thread_ip.start()
-    # 每十秒显示一下队列里的大小
+    #每十秒显示一下队列里的大小
     while True:
         print('目前队列中共有 %d 个链接' % work_queue.qsize())
         t.sleep(10)
+
     work_queue.join()  # 主线程会停在这里，直到所有数字被get()，并且task_done()
 
-#这里填写提供免费IP的网站URL
-Web_Info = ['http://www.youdaili.net/Daili/http/']
 
 if __name__ == '__main__':
     main()

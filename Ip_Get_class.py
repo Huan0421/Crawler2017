@@ -1,12 +1,14 @@
 import re
 import urllib.request
 import time as t
+from bs4 import BeautifulSoup
+
 Ip_par = '(?:(?:1\d\d|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.){3}(?:1\d\d|2[0-4]\d|25[0-5]|[1-9]\d|\d)\:\d+'
 headers={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36'}
 #定义一个IP网站url的列表
 Web_Info = [
    #这里填写提供免费IP的网站URL
-    'http://www.youdaili.net/Daili/http/29725.html'
+    'http://www.youdaili.net/Daili/http/'
 ]
 
 #定义一个类
@@ -14,21 +16,49 @@ class Ip_getting:
     def __init__(self,info):
         self.Ip_par = Ip_par
         self.headers = headers
-        self.web_info = info
-    #定义一个函数，从免费网站获取IP
-    def Get_ip(self,url):
+        self.web_index = info
+        self.url_num = ''
+    #定义一个函数，获取最新IP代理的URL页面
+    def Get_last_index(self,url):
+        Code_body = urllib.request.Request(url, headers=self.headers)
+        Code_body = urllib.request.urlopen(Code_body).read().decode('utf-8')
+        soup = BeautifulSoup(Code_body,'lxml')
+        soup_body = soup.select('div.chunlist > ul > li > p > a')
+        print('正在获取'+soup_body[0].get_text())
+        self.url_num = soup_body[0].get('href').split('/')[-1].split('.')[0]
+        return soup_body[0].get('href')
+
+    #定义一个函数，从单个网页上所有IP
+    def Get_ip_f(self,url):
         Code_body = urllib.request.Request(url,headers = self.headers)
         Code_body = urllib.request.urlopen(Code_body).read().decode('utf-8')
         Ip_from_web = re.findall(self.Ip_par,Code_body)
-        print('从网站获取 %d 个IP' % len(Ip_from_web))
         #print(Ip_from_web)
         return Ip_from_web
 
+    #在上面函数基础上，从连续的网页获取所有IP
+    def Get_ip(self,url):
+        IP_url = self.Get_last_index(url)
+        Ip_All = self.Get_ip_f(IP_url)
+        i = 1
+        while True:
+            i += 1
+            url = IP_url.replace(self.url_num, self.url_num + '_' + str(i))
+            try:
+                Code_body = urllib.request.Request(url, headers=self.headers)
+                Code_body = urllib.request.urlopen(Code_body).read().decode('utf-8')
+                soup = BeautifulSoup(Code_body, 'lxml')
+            except Exception as e:
+                if e.code == 404:
+                    break
+            Ip_All += self.Get_ip_f(url)
+        print('共获取 %d 个IP' % len(Ip_All))
+        return Ip_All
     #依次从取出免费IP网站的URL，采集其IP
     def get_ip_url(self):
         # 定义一个储存IP的列表
         Ip_Info = []
-        for i in self.web_info:
+        for i in self.web_index:
             Ip_Info += self.Get_ip(i)
         #利用集合去除重复的
         Ip_Info = set(Ip_Info)
@@ -42,7 +72,7 @@ class Ip_getting:
         opener.addheaders = [('User-Agent',self.headers['User-Agent'])]
         urllib.request.install_opener(opener)
         try:
-            Web_body = urllib.request.urlopen('http://www.whatismyip.com.tw/',timeout=3).read().decode('utf-8')
+            Web_body = urllib.request.urlopen('http://www.whatismyip.com.tw/',timeout=1).read().decode('utf-8')
             Ip_pa = '(?:(?:1\d\d|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.){3}(?:1\d\d|2[0-4]\d|25[0-5]|[1-9]\d|\d)(?:\:\d+){0,1}'
             Ip_from_web = re.findall(Ip_pa, Web_body)
             if Ip_from_web:
