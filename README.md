@@ -1,15 +1,11 @@
 # Crawler2017
-����Ŀ��һ����ȡ���ҵز����ݶ��ַ���Ϣ��������Ŀ��
+本项目是一个爬取杭州二手房信息的多线程爬虫的练手项目。定义了两个线程类 producer 和 consumer, 分别负责爬取主页中的URL 写入队列和从队列中提取 URL并从中提取详情页信息，另有一线程负责从免费的代 理IP 网站中批量爬取代理IP形成代理池，并循环访问 http://www.whatismyip.com.tw/网站验证 IP 的有效性， 以筛选出有效IP的列表，并实时更新。继承以上类重写爬虫，分别爬取链家，我爱我家等 7 家中介的共7 万余 条二手房信息，并导入数据库进行分析。
 
-����Ϊ�����֣�
-��һ������Ip_Get_class.py�ļ��У��ⲿ����Ҫ�Ǵ���ѵĴ���IP��վ��������ȡ����IP������������'http://www.whatismyip.com.tw/'��վ����֤IP����Ч�ԣ������շ���һ������������ЧIP���б���
-
-�ڶ�������main.py�ļ��У���д����������������̣߳��߳�һ��������ҳ�н���������ҳ��URLһһ��ȡ������д������С��̶߳�����Ӷ�����ȡ��URL������ȡ��Ӧ����ҳ����Ϣ��
-
-������־��
+更新日志：
 2017.1.24
-1.�Ż���Ip_Get_class.py�ļ���ʹ����Ը���Ч����ȡIP��
-2.�������IP���Ӳ��ȶ�����main.py�ļ��������˵������̣߳�ʱ�̸���IP���е�IP��ͬʱ��requestsģ���滻��urllib.request��ͬʱ��IP����Ϊȫ�ֱ����������߳�3ʱ�̸��¡�
-3.������δʹ�ô�����main_mini.py�ļ����ڲ��ԡ�
+1.优化了Ip_Get_class.py文件，使其可以更高效的爬取IP。
+2.鉴于免费IP链接不稳定，在main.py文件中添加了第三个线程，时刻更新IP池中的IP，同时用requests模块替换了urllib.request；同时将IP池作为全局变量，利用线程3时刻更新。
+3.添加了未使用代理的main_mini.py文件用于测试。
 2017.1.25
-�Ż���main.py�ļ�
+优化了main.py文件
+2017.3.1重写了整个项目。
